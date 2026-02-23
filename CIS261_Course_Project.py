@@ -1,6 +1,8 @@
 #Dominick Orlando 
 #CIS261 Course Project
 
+FILENAME = "employee_info.txt"
+
 def get_employee_name():
     name = input("Enter employee name, or type 'End' to quit: ")
     return name 
@@ -43,10 +45,31 @@ def show_totals(totals_dict):
     print("Total Tax: $", totals_dict["total_tax"])
     print("Total Net Pay: $", totals_dict["total_net"])
 
+def valid_date(date_str):
+    if len(date_str) != 10:
+        return False
+    if date_str[2] != "/" or date_str[5] != "/":
+        return False
+    m = date_str[0:2]
+    d = date_str[3:5]
+    y = date_str[6:10]
+    if not (m.isdigit() and d.isdigit() and y.isdigit()):
+        return False
+    return True
 
+def get_from_date():
+    while True:
+        from_date = input("Enter 'From' Date (mm/dd/yyyy) or 'All': ")
+        if from_date == "All":
+            return "All"
+        if valid_date(from_date):
+            return from_date
+        print("Invalid date. Try again.")
 
-def process_employees(employee_list):
-    totals_dict = {
+def run_report():
+    from_date = get_from_date()
+        
+    totals = {
         "total_employees": 0,
         "total_hours": 0.0,
         "total_gross": 0.0,
@@ -54,48 +77,57 @@ def process_employees(employee_list):
         "total_net": 0.0
     }
 
-    for emp in employee_list:
-        start_date = emp[0]
-        end_date = emp[1]
-        name = emp[2]
-        hours = emp[3]
-        rate = emp[4]
-        tax_rate = emp[5]
+    try:
+        file = open(FILENAME, "r")
+    except:
+        print("No data file found.")
+        return
+    for line in file:
+        line = line.strip()
+        if line == "":
+            continue
 
-        gross_pay, income_tax, net_pay = calculate_pay(hours, rate, tax_rate)
+        parts = line.split("|")
 
-        show_employee_info(
-            start_date,
-            end_date,
-            name,
-            hours,
-            rate,
-            gross_pay,
-            tax_rate,
-            income_tax,
-            net_pay
-        )
+        start = parts [0]
 
-        totals_dict["total_employees"] += 1 
-        totals_dict["total_hours"] += hours
-        totals_dict["total_gross"] += gross_pay
-        totals_dict["total_tax"] += income_tax
-        totals_dict["total_net"] += net_pay
-    return totals_dict 
+        if from_date != "All" and start != from_date:
+            continue
+        end = parts[1]
+        name = parts[2]
+        hours = float(parts[3])
+        rate = float(parts[4])
+        tax_rate = float(parts[5])
 
-employee_list = []
+        gross, tax, net = calculate_pay(hours, rate, tax_rate)
+        show_employee_info(start, end, name, hours, rate, gross, tax_rate, tax, net)
+
+        totals["total_employees"] += 1 
+        totals["total_hours"] += hours 
+        totals["total_gross"] += gross
+        totals["total_tax"] += tax
+        totals["total_net"] += net 
+
+
+
+
+
+
+
+
+file = open(FILENAME, "a")
+
 while True:
     employee_name = get_employee_name()
     if employee_name.lower() == "end":
-        break 
-
+        break
+    
     start_date, end_date = get_dates()
     hours = get_total_hours()
     rate = get_hourly_rate()
     tax_rate = get_tax_rate()
 
-    employee_list.append([start_date, end_date, employee_name, hours, rate, tax_rate])
-
-totals = process_employees(employee_list)
-show_totals(totals)
-
+    record = start_date + "|" + end_date + "|" + employee_name + "|" + str(hours) + "|" + str(rate) + "|" + str(tax_rate)
+    file.write(record + "\n")
+file.close()
+run_report()
