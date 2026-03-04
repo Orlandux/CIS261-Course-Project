@@ -2,6 +2,14 @@
 #CIS261 Course Project
 
 FILENAME = "employee_info.txt"
+USER_FILE = "user_login.txt"
+
+class Login:
+    def __init__(self, user_id, password, authorization):
+        self.user_id = user_id
+        self.password = password
+        self.authorization = authorization
+
 
 def get_employee_name():
     name = input("Enter employee name, or type 'End' to quit: ")
@@ -66,8 +74,13 @@ def get_from_date():
             return from_date
         print("Invalid date. Try again.")
 
-def run_report():
+def run_report(login_obj):
+    print("Logged in User:", login_obj.user_id)
+    print("Authorization:", login_obj.authorization) 
+    print()
+
     from_date = get_from_date()
+
         
     totals = {
         "total_employees": 0,
@@ -108,26 +121,73 @@ def run_report():
         totals["total_tax"] += tax
         totals["total_net"] += net 
 
+    file.close()
+    show_totals(totals)
 
+def login():
+    user_ids = []
+    passwords = []
+    auths = []
 
-
-
-
-
-
-file = open(FILENAME, "a")
-
-while True:
-    employee_name = get_employee_name()
-    if employee_name.lower() == "end":
-        break
+    try:
+        file = open(USER_FILE, "r")
+    except:
+        print("User's login data not detected.")
+        return None
     
-    start_date, end_date = get_dates()
-    hours = get_total_hours()
-    rate = get_hourly_rate()
-    tax_rate = get_tax_rate()
+    for line in file:
+        line = line.strip()
+        if line == "":
+            continue
+        parts = line.split("|")
+        user_ids.append(parts[0])
+        passwords.append(parts[1])
+        auths.append(parts[2])
 
-    record = start_date + "|" + end_date + "|" + employee_name + "|" + str(hours) + "|" + str(rate) + "|" + str(tax_rate)
-    file.write(record + "\n")
-file.close()
-run_report()
+    file.close()
+    
+    user_id = input("Enter User ID: ")
+
+    if user_id not in user_ids:
+        print("User ID not detected.")
+        return None
+    
+    password = input("Enter password: ")
+
+    index = user_ids.index(user_id)
+
+    if password != passwords[index]:
+        print("Password is incorrect.")
+        return None
+    
+    return Login(user_id, password, auths[index])
+
+def enter_employee_data():
+    file = open(FILENAME, "a")
+
+    while True:
+        employee_name = get_employee_name()
+        if employee_name.lower() == "end":
+            break
+        start_date, end_date = get_dates()
+        hours = get_total_hours()
+        rate = get_hourly_rate()
+        tax_rate = get_tax_rate()
+
+        record = start_date + "|" + end_date + "|" + employee_name + "|" + str(hours) + "|" + str(rate) + "|" + str(tax_rate)
+        file.write(record + "\n")
+
+    file.close()
+
+
+login_obj = login()
+
+if login_obj != None:
+
+    if login_obj.authorization == "Admin":
+        enter_employee_data()
+        run_report(login_obj)
+
+    else:
+        run_report(login_obj)
+
